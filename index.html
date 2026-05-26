@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智读·辨思 - 雅思阅读课后自主答疑舱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', 'JetBrains Mono', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+
+        .cyber-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.2);
+        }
+
+        .glow-green {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            5% { opacity: 0.8; }
+            95% { opacity: 0.8; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        .scanline {
+            animation: scan 2.5s linear infinite;
+        }
+
+        @keyframes pulse-highlight {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .pulse-token {
+            animation: pulse-highlight 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="cyber-grid min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Header: Student Portal Metadata (Refined) -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 bg-gradient-to-tr from-cyan-500 to-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg glow-cyan">
+                BY
+            </div>
+            <div>
+                <h1 class="text-md lg:text-lg font-bold tracking-wider text-slate-100 flex items-center gap-2">
+                    博雅国际学院 <span class="text-cyan-400">雅思智读 · 24h数智答疑舱</span>
+                </h1>
+                <p class="text-xs text-slate-400">《雅思阅读》模块二：判断题(T/F/NG)课后自主训练与AI诊断对齐平台</p>
+            </div>
+        </div>
+        
+        <!-- Interactive widgets (Mistake book & Progress - Locally functional) -->
+        <div class="flex flex-wrap items-center gap-4 lg:gap-6">
+            <!-- Mistake Book Badge -->
+            <button onclick="toggleMistakeModal()" class="flex items-center gap-2 bg-slate-950/80 px-4 py-2 rounded-lg border border-slate-800 hover:border-amber-500/50 transition-all text-left">
+                <span class="text-lg">📁</span>
+                <div>
+                    <div class="text-[10px] text-slate-500">我的错题本</div>
+                    <div class="text-xs font-bold text-amber-400"><span id="mistake-count">0</span> 道录入</div>
+                </div>
+            </button>
+
+            <!-- Learning Progress bar -->
+            <div class="w-40 bg-slate-950/60 p-2 rounded-lg border border-slate-800 flex flex-col justify-between">
+                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                    <span>自学通关进度</span>
+                    <span id="progress-percent" class="font-mono text-cyan-400">0/4</span>
+                </div>
+                <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-cyan-500 transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification popup placeholder -->
+    <div id="toast" class="fixed top-6 right-6 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 bg-slate-900 border border-cyan-500 text-slate-200 text-xs py-3 px-5 rounded-lg shadow-xl flex items-center gap-3">
+        <span id="toast-icon">💡</span>
+        <span id="toast-msg">提示信息</span>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Pane: Reading & Self-Test Area (5 columns) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Learning Task Selector -->
+            <div class="bg-slate-900/95 border border-slate-800 rounded-xl p-4 shadow-md">
+                <h2 class="text-xs font-semibold tracking-wider text-cyan-400 uppercase mb-3 flex items-center gap-2">
+                    <span class="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                    本节课后自测任务
+                </h2>
+                <div class="grid grid-cols-4 gap-2">
+                    <button id="nav-1" onclick="selectTask(1)" class="py-2.5 px-2 rounded-lg border text-xs font-medium text-center transition-all bg-slate-950/40 border-slate-800 hover:border-cyan-500/30">
+                        课堂重温
+                    </button>
+                    <button id="nav-2" onclick="selectTask(2)" class="py-2.5 px-2 rounded-lg border text-xs font-medium text-center transition-all bg-slate-950/40 border-slate-800 hover:border-cyan-500/30">
+                        微习题 Q1
+                    </button>
+                    <button id="nav-3" onclick="selectTask(3)" class="py-2.5 px-2 rounded-lg border text-xs font-medium text-center transition-all bg-slate-950/40 border-slate-800 hover:border-cyan-500/30">
+                        微习题 Q2
+                    </button>
+                    <button id="nav-4" onclick="selectTask(4)" class="py-2.5 px-2 rounded-lg border text-xs font-medium text-center transition-all bg-slate-950/40 border-slate-800 hover:border-cyan-500/30">
+                        微习题 Q3
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Passage & Proposition Box -->
+            <div class="bg-slate-900/95 border border-slate-800 rounded-xl p-5 flex flex-col gap-4 flex-1">
+                <!-- Passage Title / Source indicator -->
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded font-mono">Passage Context</span>
+                        <h3 id="passage-title" class="text-xs font-bold text-slate-300">剑桥雅思真题阅读语料库</h3>
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono">STANDALONE APP</span>
+                </div>
+
+                <!-- Original Passage text -->
+                <div class="space-y-1.5">
+                    <span class="text-[11px] font-semibold text-cyan-500/80 uppercase block">Original Passage / 雅思原文定位句：</span>
+                    <div id="box-original" class="p-3.5 bg-slate-950/90 border border-slate-800/80 rounded-lg text-xs font-serif leading-relaxed text-slate-300 min-h-[110px] max-h-[150px] overflow-y-auto">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Proposition Question text -->
+                <div class="space-y-1.5">
+                    <span class="text-[11px] font-semibold text-cyan-500/80 uppercase block">Proposition Question / 题干拟真判断句：</span>
+                    <div id="box-proposition" class="p-3.5 bg-slate-950/90 border border-slate-800/80 rounded-lg text-xs font-serif leading-relaxed text-slate-100 font-bold min-h-[70px]">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Self-test Submission form -->
+                <div class="mt-2 pt-4 border-t border-slate-800 space-y-4">
+                    <div class="text-xs font-semibold text-slate-300 flex justify-between items-center">
+                        <span>请给出你的课后判断结论 (Your Judgement):</span>
+                        <span class="text-[10px] font-normal text-amber-400">自主作答后才可查看AI诊断与雷达</span>
+                    </div>
+
+                    <!-- Interactive True/False/NG selector buttons -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <button id="opt-true" onclick="selectStudentAnswer('TRUE')" class="py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-emerald-400">
+                            TRUE
+                        </button>
+                        <button id="opt-false" onclick="selectStudentAnswer('FALSE')" class="py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-rose-400">
+                            FALSE
+                        </button>
+                        <button id="opt-ng" onclick="selectStudentAnswer('NOT GIVEN')" class="py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-amber-400">
+                            NOT GIVEN
+                        </button>
+                    </div>
+
+                    <!-- Submit action -->
+                    <button id="btn-submit" onclick="submitStudentResponse()" class="w-full py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs transition-all shadow-md glow-cyan flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 animate-spin hidden" id="loading-spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>提交并调取AI智能解析 [RUN DIAGNOSTIC]</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Pane: AI Diagnostic & Tutoring Center (7 columns) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Mid Panel: Locking Overlay that opens up when student submits -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1">
+                
+                <!-- Left: Quantized NLP Gauges (5 columns) -->
+                <div class="bg-slate-900/95 border border-slate-800 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-5 relative overflow-hidden min-h-[300px]">
+                    <h3 class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                        NLP 语义逻辑决策量化雷达
+                    </h3>
+
+                    <!-- Blur locking layer for PBL -->
+                    <div id="panel-lock-gauges" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4 text-center">
+                        <span class="text-3xl mb-2">🔒</span>
+                        <h4 class="text-xs font-bold text-slate-300">请先在左侧选择并提交答案</h4>
+                        <p class="text-[10px] text-slate-500 mt-1 max-w-[150px]">答题后即刻解锁NLP神经网络诊断比对数值</p>
+                    </div>
+                    
+                    <div class="space-y-4 flex-1 flex flex-col justify-center">
+                        <!-- Overlap progress -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">语义重合度 (Overlap)</span>
+                                <span id="g-overlap-val" class="font-mono text-cyan-400 font-bold">0%</span>
+                            </div>
+                            <div class="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                                <div id="g-overlap-bar" class="h-full bg-cyan-500 transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Contradiction progress -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">逻辑冲突率 (Contradiction)</span>
+                                <span id="g-conflict-val" class="font-mono text-rose-400 font-bold">0%</span>
+                            </div>
+                            <div class="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                                <div id="g-conflict-bar" class="h-full bg-rose-500 transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Completeness progress -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">论据完整度 (Completeness)</span>
+                                <span id="g-completeness-val" class="font-mono text-emerald-400 font-bold">0%</span>
+                            </div>
+                            <div class="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                                <div id="g-completeness-bar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 text-[10px] text-slate-400 leading-relaxed space-y-1">
+                        <div>💡 <span class="text-cyan-400">语义重合度</span>高：考点定位锁定。</div>
+                        <div>💡 <span class="text-rose-400">逻辑冲突率</span>极高：直接矛盾反义。</div>
+                        <div>💡 <span class="text-emerald-400">论据完整度</span>偏低：说明原文未提及。</div>
+                    </div>
+                </div>
+
+                <!-- Right: Verdict Output & Official Explanation Card (7 columns) -->
+                <div class="bg-slate-900/95 border border-slate-800 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-7 relative overflow-hidden">
+                    
+                    <!-- Blur locking layer for PBL -->
+                    <div id="panel-lock-verdict" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4 text-center">
+                        <span class="text-3xl mb-2">📊</span>
+                        <h4 class="text-xs font-bold text-slate-300">自学自测诊断看板</h4>
+                        <p class="text-[10px] text-slate-500 mt-1">AI会对你的选项与真题考纲作比对，提供逻辑判定解析</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                                答案核对与诊断反馈 (Diagnostic)
+                            </h3>
+                            <span id="label-score" class="text-[10px] font-bold px-2 py-0.5 rounded"></span>
+                        </div>
+
+                        <!-- Diagnostic Response Box -->
+                        <div id="diag-feedback-card" class="p-4 rounded-lg border flex items-center justify-between gap-4 transition-all duration-300">
+                            <div class="space-y-0.5">
+                                <div class="text-[9px] text-slate-500 font-mono">YOUR OPTION VS ACCREDITED KEY:</div>
+                                <div id="diag-status-text" class="text-lg font-bold">...</div>
+                            </div>
+                            <div id="diag-badge" class="h-10 w-24 rounded font-mono font-bold text-xs flex items-center justify-center">
+                                -
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Precise text-based official analysis from word -->
+                    <div class="flex-1 flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-mono text-cyan-400 block">名师考点精析 (Official Analytical Proof):</span>
+                            <!-- Add to mistake notebook -->
+                            <button id="btn-add-mistake" onclick="addCurrentToMistakes()" class="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-amber-400 border border-slate-700 text-slate-400 px-2 py-0.5 rounded flex items-center gap-1 transition-all">
+                                <span>⭐ 记入错题本</span>
+                            </button>
+                        </div>
+                        <div id="box-explanation" class="p-3 bg-slate-950/80 rounded border border-slate-800/80 text-xs text-slate-300 min-h-[140px] max-h-[180px] overflow-y-auto leading-relaxed">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Pane: AI Smart Tutor Side-by-side (24h AI 助教学术答疑) -->
+            <div class="bg-slate-900/95 border border-slate-800 rounded-xl p-5 relative overflow-hidden flex flex-col gap-3 min-h-[220px]">
+                
+                <!-- Overlay layer requiring student to submit before talking to tutor -->
+                <div id="panel-lock-tutor" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4 text-center">
+                    <span class="text-2xl mb-1">🤖</span>
+                    <h4 class="text-xs font-bold text-slate-300">24h AI 专属学术助教互动舱已就绪</h4>
+                    <p class="text-[10px] text-slate-500 mt-0.5">提交答案后，可在下方快捷点击学生常见错题痛点，助教将在线为你释疑！</p>
+                </div>
+
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        AI Academic Coach / 智能双师学术答疑
+                    </h3>
+                    <span class="text-[10px] font-mono bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 px-2.5 py-0.5 rounded">交互追问式答疑中</span>
+                </div>
+
+                <!-- Chat history display window -->
+                <div id="chat-scroller" class="flex-1 overflow-y-auto p-3 bg-slate-950/80 rounded-lg border border-slate-800 space-y-3 min-h-[110px] max-h-[160px]">
+                    <div class="flex gap-2">
+                        <div class="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">AI</div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 max-w-[85%] text-xs text-slate-300 leading-relaxed">
+                            你好！我是你的24h阅读答疑小助手。你已经完成了这道题的作答。关于这道题的定位词对齐或者逻辑干扰点，你还有什么不理解的吗？点击右侧我为你整理的**【自学高频困惑】**，我立即帮你拆解！
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Quick Student Questions buttons -->
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-[9px] font-mono text-slate-500">你可以一键追问以下高频痛点疑惑 (Click to follow up):</span>
+                    <div id="chat-prompts-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <!-- Loaded dynamically based on active case -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Mistake Book Drawer Modal (Offline review simulation) -->
+    <div id="mistake-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="toggleMistakeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            <h3 class="text-sm font-bold text-amber-400 mb-4 flex items-center gap-2">
+                📁 课后错题笔记本 & 难点温习
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">你在自学答疑中收录的问题将留存在下方。你可以随时反复研读AI关于该考点的逻辑切片，建立坚固的证据链思维！</p>
+            
+            <div id="mistake-list" class="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                <!-- Mistakes injected dynamically -->
+                <p class="text-xs text-slate-500 italic text-center py-6">你当前未收录任何错题。加油！利用错题不断内省是高分的核心！</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footnote Credits -->
+    <footer class="bg-slate-950/80 border-t border-slate-900 p-3 text-center text-[10px] text-slate-500">
+        博雅国际学院雅思教学创新团队 版权所有 © 2026 | 技术支撑：AI神经网络语义对齐诊断模型
+    </footer>
+
+    <!-- Scripts for Logical Interactivity & Content -->
+    <script>
+        // Official curriculum dataset mapped directly to your word document
+        const curricularData = {
+            1: {
+                title: "课堂真题重温 · 居里夫人案例 (痛点剖析)",
+                original: "Marie Curie is probably the most famous woman scientist who has ever lived. With her husband, Pierre Curie, and Henri Becquerel, she was awarded the 1903 Nobel Prize for Physics, and was then sole winner of the 1911 Nobel Prize for Chemistry.",
+                proposition: "Marie Curie’s husband was a joint winner of both her Nobel Prizes.",
+                correctAnswer: "FALSE",
+                // Quantized AI values
+                overlap: 85,
+                conflict: 95,
+                completeness: 100,
+                // Word text
+                explanation: "<strong>【名师官方解析】</strong><br>本题是课堂痛点导入题。题目断言其丈夫是“joint winner of both her Nobel Prizes”（两次诺奖的共同获得者）。<br>而在原文定位处提到：1903年物理学奖是共同获得，但在1911年化学奖上，原文明确指出她是“<strong>sole winner</strong> (排他独享的赢家)”。<br><br><strong>【AI逻辑雷达拆解】</strong><br>AI抓取到了“sole (1人独享)”与“both (2人共享)”存在数学集合逻辑层面的【绝对互斥】。论据充足（完整度100%），没有信息缺失，故属于直接矛盾冲突，答案判定为 <strong>FALSE</strong>。",
+                // Interactive tutoring presets
+                tutorPrompts: [
+                    { q: "为什么选FALSE而不是选Not Given？", a: "你好！很多同学分不清F和NG。核心秘诀在于‘信息完整度’。原文非常明确且完整地告诉你了1911年是‘sole winner’(独有获奖人)。这个信息是百分之百存在的。而题干强行描述为两人‘both’共同获得。由于‘1’和‘2’在客观世界上是必然对立的，既然文章给足了线索说不是2人，那就是FALSE！只有在原文根本没提1911年获奖人数或只字未提时，才能选NG哦！" },
+                    { q: "AI 决策指标中85%的语义重合度是怎么算出来的？", a: "这代表题干与原文定位句的匹配契合度。题干里的‘husband’, ‘Nobel Prizes’均在原文中高频对应，说明命题紧扣原文这一句进行考察，属于有效定位。语义重合度很高说明定位完全准确，考题没有脱离文本！" }
+                ]
+            },
+            2: {
+                title: "课后训练 Q1 · 基础巩固 (同义词匹配)",
+                original: "Marie Curie is probably the most famous woman scientist who has ever lived. With her husband, Pierre Curie, and Henri Becquerel, she was awarded the 1903 Nobel Prize for Physics, and was then sole winner of the 1911 Nobel Prize for Chemistry.",
+                proposition: "Marie Curie was the only person to receive the 1911 Nobel Prize for Chemistry.",
+                correctAnswer: "TRUE",
+                overlap: 95,
+                conflict: 5,
+                completeness: 100,
+                explanation: "<strong>【名师官方解析】</strong><br>本题出自课后微习题第1题。题目陈述为：居里夫人是唯一一个获得1911年诺贝尔化学奖的人。<br>原文中明确指出，在1911年诺奖中，她是“<strong>sole winner</strong> (独享获奖人)”。“sole”意即“唯一的、独享的”，与题目中的“the only person”完美实现了<strong>同义替换</strong>。<br><br><strong>【AI逻辑雷达拆解】</strong><br>AI自然语言系统将“sole winner”和“only person”映射对齐，极性高度一致。没有任何语义偏差或逻辑盲区。逻辑冲突率仅为5%，语义重合度高达95%，属于无缝对齐，答案判定为 <strong>TRUE</strong>。",
+                tutorPrompts: [
+                    { q: "在这类题中，如何快速通过AI词素抓取考点词？", a: "雅思判断题的命题眼通常是‘绝对限制词’。比如本题中，题干的考点在‘the only person’。AI比对引擎在扫描时，会自动提取这类表示限定、范围的词，然后到原文定位词‘sole’上进行范围交叉计算。在课后，你可以多积累‘sole -> only / exclusive’这种经典雅思同义考点对！" },
+                    { q: "AI判定说逻辑冲突率是5%，为什么不是0%？", a: "因为自然语言存在句式与语法差异（例如主动变被动，名词变形容词），所以在神经网络计算中会保留极其微小的语义震荡差。但在逻辑层面，5%的冲突率在系统眼里等同于无冲突，即完美对齐（TRUE）！" }
+                ]
+            },
+            3: {
+                title: "课后训练 Q2 · 能力提升 (因果关联辨析)",
+                original: "From her earnings she was able to finance her sister Bronia’s medical studies in Paris, on the understanding that Bronia would, in turn, later help her to get an education.",
+                proposition: "Marie Curie attended the Sorbonne because her sister repaid the financial support.",
+                correctAnswer: "FALSE",
+                overlap: 65,
+                conflict: 85,
+                completeness: 80,
+                explanation: "<strong>【名师官方解析】</strong><br>本题出自课后微习题第2题，非常考验学生对‘因果逻辑’和‘考点偷换’的识别能力。<br><strong>原文逻辑：</strong>居里夫人资助姐姐读书，是基于姐妹两人的约定/理解（<strong>on the understanding that</strong>），期待姐姐未来能够同样资助她。<br><strong>题干逻辑：</strong>题干断言她能上索邦大学，是因为（<strong>because</strong>）她姐姐已经经济上<strong>偿还了（repaid）</strong>这笔资助。<br>这存在两层逻辑矛盾：一是原文仅指‘约定互助’，不等于已经实质性‘repaid(经济偿还)’；二是原文并未指出‘偿还资助’是她去索邦读书的绝对因果前提。且文后指出居里夫人主要是省吃俭用自食其力完成学业。<br><br><strong>【AI逻辑雷达拆解】</strong><br>AI通过因果依存语法树，判定‘because (硬因果)’与原文的‘on the understanding that (假设约定)’逻辑极性不匹配，冲突率升至85%。判定为 <strong>FALSE</strong>。",
+                tutorPrompts: [
+                    { q: "这道题为什么不能选Not Given？姐姐还不还钱原文也没写啊？", a: "好问题！这是雅思最深的一个陷阱。因为题干说的是一个完成时的肯定事实：‘...BECAUSE her sister REPAID...’。既然题干断定这个因果事实成立，而原文极其明确地指出两人的关系是未来的约定（would later help），且通过居里夫人的日记与后文证实，她是靠自己极其艰苦的省吃俭用完成了学业。题干捏造的‘因为姐姐还了钱所以才能上学’这个伪因果，已经被原文描写的真实资助过程彻底否定了。原文给的信息能够‘推翻’这个因果，所以有冲突（FALSE），而不是信息缺失（NG）。" },
+                    { q: "AI是如何发现‘because’ and ‘on the understanding’不相容的？", a: "AI助教来解答：在NLP训练集中，'because'代表的是Fact-Causality（强事实因果关系），而'on the understanding that'是Conditional-Pact（具有约束性前提的契约约定），在语义方向上，前者表示已成因果事实，后者表示假设性期望。两者的逻辑类型是不等价的！" }
+                ]
+            },
+            4: {
+                title: "课后训练 Q3 · 挑战拓展 (时间与状语限制缺失)",
+                original: "Perkin’s scientific gifts soon caught Hofmann’s attention and, within two years, he became Hofmann’s youngest assistant.",
+                proposition: "Perkin was appointed as Hofmann’s assistant because of his scientific achievements before joining the Royal College of Chemistry.",
+                correctAnswer: "NOT GIVEN",
+                overlap: 50,
+                conflict: 10,
+                completeness: 30,
+                explanation: "<strong>【名师官方解析】</strong><br>本题出自课后微习题第3题，属于典型的信息不完整判定。<br>原文提到Perkin因为他的科学天赋（scientific gifts）吸引了注意，两年内成为最年轻的助手。<br>但是，题目里加入了一个极其苛刻的时间及行为修饰词：【在加入皇家化学学院<strong>之前</strong>的学术成就（<strong>before joining</strong> the Royal College）】。<br>关于他的天赋和成就，到底是在‘入学前’就已经取得的，还是‘入学后’两年的学习里展现出来的？原文根本没有透露半点时间定位和论据支撑。这种核心修饰关系的信息断层，属于典型的无提及。<br><br><strong>【AI逻辑雷达拆解】</strong><br>AI在对齐比对中检测到“before joining”在原文里为空白。论据完整度暴跌至30%以下，同时由于无多余冲突证据（冲突率仅10%），说明原文未证实也未证伪。判定决策输出为 <strong>NOT GIVEN</strong>。",
+                tutorPrompts: [
+                    { q: "我感觉他那么聪明，入学前有成就很合理啊，为什么是NG？", a: "这正是我们在《微教案》中强调要帮大家纠正的学生三大痛点之二：‘常识干扰’。做雅思判断题，必须树立‘以文本为依据’的学术求真态度。原文说了他有‘gifts’，但没说是什么时候的成果。可能是在学院里展现的呢？科学求证，‘不妄断、不臆测’。没有明确证据支撑，逻辑链缺失，一律选择 NOT GIVEN！这也是高尚治学态度在阅读里的体现。" },
+                    { q: "AI的论据完整度(Completeness)低于多少，系统会自动判定为NG？", a: "通常在NLP判定逻辑中，当‘语义重合度’适中，而‘论据完整度’低于40%且‘冲突率’极低（少于20%）时，系统会自动发出‘信息缺口警报’，判定为NOT GIVEN。这是用量化算法来杜绝人脑的过度联想和主观臆断。" }
+                ]
+            }
+        };
+
+        let currentActiveTask = 1;
+        let selectedStudentAnswer = null;
+        let completedTasks = new Set();
+        let mistakeBook = [];
+
+        // Initialize App on DOM Ready
+        window.onload = function() {
+            // Simulated local greetings
+            showToast("👋 欢迎使用 24h 雅思阅读数智自学答疑舱！开始你的逻辑自测吧。");
+            
+            // Render default Task 1
+            selectTask(1);
+            
+            // Load Mistake Book (start empty)
+            updateMistakeUI();
+        };
+
+        function selectTask(taskId) {
+            currentActiveTask = taskId;
+            const data = curricularData[taskId];
+            selectedStudentAnswer = null; // reset answer selection
+
+            // Update Task Nav Buttons UI
+            for(let i=1; i<=4; i++) {
+                const btn = document.getElementById(`nav-${i}`);
+                if (i === taskId) {
+                    btn.classList.add('border-cyan-500', 'bg-slate-900', 'text-cyan-400', 'glow-cyan');
+                    btn.classList.remove('border-slate-800', 'bg-slate-950/40', 'text-slate-400');
+                } else {
+                    btn.classList.remove('border-cyan-500', 'bg-slate-900', 'text-cyan-400', 'glow-cyan');
+                    btn.classList.add('border-slate-800', 'bg-slate-950/40', 'text-slate-400');
+                }
+            }
+
+            // Populate Questions & Passage
+            document.getElementById('passage-title').innerText = data.title;
+            document.getElementById('box-original').innerHTML = `“${data.original}”`;
+            document.getElementById('box-proposition').innerHTML = `“${data.proposition}”`;
+
+            // Reset Answer Selection Button Classes
+            resetOptionButtonUI();
+
+            // Lock explanatory panels for PBL (Problem-Based-Learning) sequence
+            document.getElementById('panel-lock-gauges').classList.remove('hidden');
+            document.getElementById('panel-lock-verdict').classList.remove('hidden');
+            document.getElementById('panel-lock-tutor').classList.remove('hidden');
+
+            // Reset dynamic gauges to 0
+            document.getElementById('g-overlap-bar').style.width = '0%';
+            document.getElementById('g-overlap-val').innerText = '0%';
+            document.getElementById('g-conflict-bar').style.width = '0%';
+            document.getElementById('g-conflict-val').innerText = '0%';
+            document.getElementById('g-completeness-bar').style.width = '0%';
+            document.getElementById('g-completeness-val').innerText = '0%';
+
+            // Reset diagnostic card
+            const diagCard = document.getElementById('diag-feedback-card');
+            diagCard.className = "p-4 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-4";
+            document.getElementById('diag-status-text').innerText = "等待答题并提取AI分析...";
+            document.getElementById('diag-badge').innerText = "-";
+            document.getElementById('diag-badge').className = "h-10 w-24 rounded font-mono font-bold text-xs flex items-center justify-center bg-slate-900 text-slate-500 border border-slate-800";
+            document.getElementById('label-score').className = "hidden";
+
+            // Load Preset Tutor Questions in Chat
+            renderTutorPrompts(data.tutorPrompts);
+            
+            // Scroll Chat back to top with default welcoming message
+            const scroller = document.getElementById('chat-scroller');
+            scroller.innerHTML = `
+                <div class="flex gap-2">
+                    <div class="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">AI</div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 max-w-[85%] text-xs text-slate-300 leading-relaxed">
+                        同学你好！欢迎来到<strong>【${data.title}】</strong>自学辅导区。请在左侧给出你深思熟虑后的选项并点击提交，AI系统将即刻为你分析并推送逻辑对齐解析！
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectStudentAnswer(ans) {
+            selectedStudentAnswer = ans;
+            
+            // Set styles of T/F/NG options to show temporary state
+            resetOptionButtonUI();
+            
+            if (ans === 'TRUE') {
+                const btn = document.getElementById('opt-true');
+                btn.className = "py-3 rounded-lg border-2 border-emerald-500 bg-emerald-950/20 text-xs font-black text-emerald-400 shadow-md";
+            } else if (ans === 'FALSE') {
+                const btn = document.getElementById('opt-false');
+                btn.className = "py-3 rounded-lg border-2 border-rose-500 bg-rose-950/20 text-xs font-black text-rose-400 shadow-md";
+            } else {
+                const btn = document.getElementById('opt-ng');
+                btn.className = "py-3 rounded-lg border-2 border-amber-500 bg-amber-950/20 text-xs font-black text-amber-400 shadow-md";
+            }
+        }
+
+        function resetOptionButtonUI() {
+            document.getElementById('opt-true').className = "py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-emerald-400";
+            document.getElementById('opt-false').className = "py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-rose-400";
+            document.getElementById('opt-ng').className = "py-3 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/60 text-xs font-bold transition-all text-slate-400 hover:text-amber-400";
+        }
+
+        // Student submits response
+        function submitStudentResponse() {
+            if (!selectedStudentAnswer) {
+                showToast("⚠️ 请先选择一个选项(TRUE / FALSE / NOT GIVEN)！", "😭");
+                return;
+            }
+
+            const activeData = curricularData[currentActiveTask];
+            const spinner = document.getElementById('loading-spinner');
+            
+            // Trigger loading animation to simulate backend calculation
+            spinner.classList.remove('hidden');
+            document.getElementById('btn-submit').setAttribute('disabled', 'true');
+
+            setTimeout(() => {
+                spinner.classList.add('hidden');
+                document.getElementById('btn-submit').removeAttribute('disabled');
+
+                // UNLOCK PANELS (Transition out blur overlay)
+                document.getElementById('panel-lock-gauges').classList.add('hidden');
+                document.getElementById('panel-lock-verdict').classList.add('hidden');
+                document.getElementById('panel-lock-tutor').classList.add('hidden');
+
+                // Evaluate Answers
+                const isCorrect = selectedStudentAnswer === activeData.correctAnswer;
+                renderDiagnosticFeedback(isCorrect, selectedStudentAnswer, activeData.correctAnswer);
+
+                // Populate Gauges
+                animateGauge('g-overlap-bar', 'g-overlap-val', activeData.overlap);
+                animateGauge('g-conflict-bar', 'g-conflict-val', activeData.conflict);
+                animateGauge('g-completeness-bar', 'g-completeness-val', activeData.completeness);
+
+                // Populate Official analytic text
+                document.getElementById('box-explanation').innerHTML = activeData.explanation;
+
+                // Mark Task as Completed in Progress bar
+                completedTasks.add(currentActiveTask);
+                updateProgressUI();
+
+                // Interactive tutor response greeting
+                const scroller = document.getElementById('chat-scroller');
+                let tutorReply = "";
+                if (isCorrect) {
+                    tutorReply = `太棒了，同学！你非常准确地识别到了本题的底层干扰。答案正是 <strong>${activeData.correctAnswer}</strong>！如果你想进一步探究为什么其他干扰项不成立，或者对AI的计算参数好奇，可以在下方随时追问我。`;
+                    showToast("🎉 回答正确！思维契合度拉满！");
+                } else {
+                    tutorReply = `没关系，同学。这道题的考点非常隐蔽，属于高频易错题。你选择了 <strong>${selectedStudentAnswer}</strong>，但官方标准答案其实是 <strong>${activeData.correctAnswer}</strong>。不要灰心，让我们先看一下AI的三个决策量化指标，然后你可以在下方点击你对本题最疑惑的点，我将为你深度拆解！`;
+                    showToast("❌ 抱歉回答错误。不要紧，点击AI深度解析，助你攻克痛点！", "📖");
+                }
+
+                scroller.innerHTML += `
+                    <div class="flex gap-2">
+                        <div class="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">AI</div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 max-w-[85%] text-xs text-slate-300 leading-relaxed">
+                            ${tutorReply}
+                        </div>
+                    </div>
+                `;
+                scroller.scrollTop = scroller.scrollHeight;
+
+            }, 800);
+        }
+
+        function renderDiagnosticFeedback(isCorrect, studentAns, correctAns) {
+            const card = document.getElementById('diag-feedback-card');
+            const txt = document.getElementById('diag-status-text');
+            const badge = document.getElementById('diag-badge');
+            const label = document.getElementById('label-score');
+
+            label.className = "text-[10px] font-bold px-2 py-0.5 rounded";
+
+            if (isCorrect) {
+                card.className = "p-4 bg-emerald-950/40 rounded-lg border border-emerald-500/30 flex items-center justify-between gap-4 glow-green";
+                txt.innerText = `恭喜你！回答正确！标准答案是: ${correctAns}`;
+                txt.className = "text-xs font-bold text-slate-200";
+                
+                badge.className = "h-10 w-24 rounded font-mono font-bold text-xs flex items-center justify-center bg-emerald-500 text-white shadow-md";
+                badge.innerText = "ACCURATE";
+                
+                label.className += " bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                label.innerText = "PASSED";
+            } else {
+                card.className = "p-4 bg-rose-950/40 rounded-lg border border-rose-500/30 flex items-center justify-between gap-4 glow-red";
+                txt.innerText = `抱歉回答有偏差。你的选择: ${studentAns} | 标准答案: ${correctAns}`;
+                txt.className = "text-xs font-bold text-slate-200";
+
+                badge.className = "h-10 w-24 rounded font-mono font-bold text-xs flex items-center justify-center bg-rose-500 text-white shadow-md";
+                badge.innerText = "DISCREPANT";
+
+                label.className += " bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                label.innerText = "ERROR ON COGNITION";
+            }
+        }
+
+        function animateGauge(barId, valId, targetVal) {
+            const bar = document.getElementById(barId);
+            const val = document.getElementById(valId);
+            let current = 0;
+            const interval = setInterval(() => {
+                if (current < targetVal) {
+                    current += Math.ceil((targetVal - current) / 4);
+                    if (targetVal - current < 2) current = targetVal;
+                    bar.style.width = current + '%';
+                    val.innerText = current + '%';
+                } else {
+                    clearInterval(interval);
+                }
+            }, 25);
+        }
+
+        function updateProgressUI() {
+            const total = 4;
+            const size = completedTasks.size;
+            document.getElementById('progress-percent').innerText = `${size}/${total}`;
+            const pct = (size / total) * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+        }
+
+        // Add dynamically updated tutor conversational shortcuts
+        function renderTutorPrompts(prompts) {
+            const container = document.getElementById('chat-prompts-container');
+            container.innerHTML = '';
+            prompts.forEach((p, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "text-left text-[11px] bg-slate-950 hover:bg-slate-850 text-indigo-400 hover:text-white border border-slate-800 hover:border-indigo-500/40 p-2.5 rounded transition-all truncate";
+                btn.innerHTML = `❓ ${p.q}`;
+                btn.onclick = () => askTutorQuestion(p.q, p.a);
+                container.appendChild(btn);
+            });
+        }
+
+        // Student clicks quick question
+        function askTutorQuestion(q, a) {
+            const scroller = document.getElementById('chat-scroller');
+            
+            // Print student bubble
+            scroller.innerHTML += `
+                <div class="flex gap-2 justify-end">
+                    <div class="bg-indigo-950 border border-indigo-800/50 rounded-lg p-2 max-w-[85%] text-xs text-indigo-200 leading-relaxed text-right">
+                        ${q}
+                    </div>
+                    <div class="h-6 w-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">我</div>
+                </div>
+            `;
+            scroller.scrollTop = scroller.scrollHeight;
+
+            // Delayed response from AI tutor
+            setTimeout(() => {
+                scroller.innerHTML += `
+                    <div class="flex gap-2">
+                        <div class="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">AI</div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 max-w-[85%] text-xs text-slate-300 leading-relaxed">
+                            ${a}
+                        </div>
+                    </div>
+                `;
+                scroller.scrollTop = scroller.scrollHeight;
+            }, 400);
+        }
+
+        // Mistake Notebook logic
+        function addCurrentToMistakes() {
+            const activeData = curricularData[currentActiveTask];
+            
+            // Avoid duplicate additions
+            const exist = mistakeBook.find(item => item.id === currentActiveTask);
+            if (exist) {
+                showToast("💡 本题已在你的错题笔记本中，请多反复巩固！", "📁");
+                return;
+            }
+
+            mistakeBook.push({
+                id: currentActiveTask,
+                title: activeData.title,
+                original: activeData.original,
+                proposition: activeData.proposition,
+                ans: activeData.correctAnswer,
+                explanation: activeData.explanation
+            });
+
+            document.getElementById('mistake-count').innerText = mistakeBook.length;
+            updateMistakeUI();
+            showToast("🌟 成功收录至课后错题笔记本！可在上方统一查阅复温。");
+        }
+
+        function updateMistakeUI() {
+            const container = document.getElementById('mistake-list');
+            if (mistakeBook.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-6">你当前未收录任何错题。加油！利用错题进行内省是自学高分的秘诀！</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            mistakeBook.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-3.5 bg-slate-950 rounded-lg border border-slate-800 space-y-2";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center pb-1.5 border-b border-slate-900">
+                        <span class="text-[10px] font-bold text-amber-500 uppercase">${item.title}</span>
+                        <span class="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded font-bold">标准答案：${item.ans}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 font-serif leading-relaxed">原文: “${item.original}”</p>
+                    <p class="text-[11px] text-slate-200 font-serif font-bold">题目: “${item.proposition}”</p>
+                    <div class="p-2.5 bg-slate-900 rounded text-[11px] text-slate-400 leading-relaxed border border-slate-850">
+                        ${item.explanation}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleMistakeModal() {
+            const modal = document.getElementById('mistake-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        // Custom notification system
+        function showToast(msg, icon = "🎓") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').innerText = icon;
+            
+            toast.className = "fixed top-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 bg-slate-900 border border-cyan-500 text-slate-200 text-xs py-3 px-5 rounded-lg shadow-xl flex items-center gap-3";
+            
+            setTimeout(() => {
+                toast.className = "fixed top-6 right-6 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 bg-slate-900 border border-cyan-500 text-slate-200 text-xs py-3 px-5 rounded-lg shadow-xl flex items-center gap-3";
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
